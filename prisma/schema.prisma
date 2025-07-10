@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  COACH
+  MEMBER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MemberStatus {
+  AKTIF
+  TIDAK_AKTIF
+}
+
+enum PaymentStatus {
+  PENDING
+  TERKONFIRMASI
+  GAGAL
+}
+
+enum Hari {
+  SENIN
+  SELASA
+  RABU
+  KAMIS
+  JUMAT
+  SABTU
+  MINGGU
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  name       String
+  phone      String   @unique
+  birthDate  DateTime?
+  gender     Gender
+  password   String
+  role       Role
+  photoPath  String?
+  createdAt  DateTime @default(now())
+
+  coach      Coach?
+  member     Member?
+}
+
+model Member {
+  id                Int             @id @default(autoincrement())
+  user              User            @relation(fields: [userId], references: [id])
+  userId            Int             @unique
+  trainingPackage   TrainingPackage @relation(fields: [trainingPackageId], references: [id])
+  trainingPackageId Int
+  status            MemberStatus    @default(AKTIF)
+  startDate         DateTime        @default(now())
+  endDate           DateTime?
+
+  payments          PaymentHistory[]
+  attendance        AttendanceMember[]
+  assignments       MemberTrainingAssignment[]
+  reports           Report[]
+}
+
+model Coach {
+  id         Int       @id @default(autoincrement())
+  user       User      @relation(fields: [userId], references: [id])
+  userId     Int       @unique
+
+  availability CoachAvailability[]
+  materials    Material[]
+  attendance   Attendance[]
+  assignments  MemberTrainingAssignment[]
+  reports      Report[]
+}
+
+model TrainingPackage {
+  id          Int       @id @default(autoincrement())
+  name        String
+  price       Decimal
+  description String
+
+  members     Member[]
+}
+
+model TrainingSchedule {
+  id      Int    @id @default(autoincrement())
+  day     Hari
+  time    String
+  place   String
+
+  attendance Attendance[]
+}
+
+model CoachAvailability {
+  id      Int    @id @default(autoincrement())
+  coach   Coach  @relation(fields: [coachId], references: [id])
+  coachId Int
+  day     Hari
+}
+
+model Attendance {
+  id            Int       @id @default(autoincrement())
+  coach         Coach     @relation(fields: [coachId], references: [id])
+  coachId       Int
+  schedule      TrainingSchedule @relation(fields: [scheduleId], references: [id])
+  scheduleId    Int
+  date          DateTime
+  place         String
+  totalMembers  Int       @default(0)
+  extraMembers  String?
+  photoPath     String?
+
+  attendanceMembers AttendanceMember[]
+}
+
+model AttendanceMember {
+  id           Int        @id @default(autoincrement())
+  attendance   Attendance @relation(fields: [attendanceId], references: [id])
+  attendanceId Int
+  member       Member     @relation(fields: [memberId], references: [id])
+  memberId     Int
+}
+
+model Material {
+  id           Int       @id @default(autoincrement())
+  coach        Coach     @relation(fields: [coachId], references: [id])
+  coachId      Int
+  title        String
+  description  String
+  filePath     String
+  uploadedAt   DateTime  @default(now())
+}
+
+model PaymentHistory {
+  id              Int           @id @default(autoincrement())
+  member          Member        @relation(fields: [memberId], references: [id])
+  memberId        Int
+  amount          Decimal
+  paymentDate     DateTime      @default(now())
+  status          PaymentStatus @default(PENDING)
+  proofPath       String?
+}
+
+model MemberTrainingAssignment {
+  id        Int    @id @default(autoincrement())
+  member    Member @relation(fields: [memberId], references: [id])
+  memberId  Int
+  coach     Coach  @relation(fields: [coachId], references: [id])
+  coachId   Int
+}
+
+model BankAccount {
+  id            Int      @id @default(autoincrement())
+  bankName      String
+  accountNumber String
+  accountHolder String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+}
+
+model RegistrationFee {
+  id          Int     @id @default(autoincrement())
+  amount      Decimal
+  description String
+}
+
+model Setting {
+  id           Int    @id @default(autoincrement())
+  settingKey   String @unique
+  settingValue String
+}
+
+model Report {
+  id        Int     @id @default(autoincrement())
+  member    Member  @relation(fields: [memberId], references: [id])
+  memberId  Int
+  coach     Coach   @relation(fields: [coachId], references: [id])
+  coachId   Int
+  score     String?
+  notes     String?
+  filePath  String?
+  date      DateTime
+}
+
+model FormSubmission {
+  id          Int      @id @default(autoincrement())
+  type        String
+  data        Json
+  submittedAt DateTime @default(now())
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  message     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Salary {
+  id          Int      @id @default(autoincrement())
+  coach       Coach    @relation(fields: [coachId], references: [id])
+  coachId     Int
+  amount      Decimal
+  month       String
+  status      String
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+}
